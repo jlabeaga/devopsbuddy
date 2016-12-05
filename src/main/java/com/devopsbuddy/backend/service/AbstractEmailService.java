@@ -7,7 +7,7 @@ import com.devopsbuddy.web.domain.frontend.FeedbackPojo;
 
 public abstract class AbstractEmailService implements EmailService {
 
-	@Value("${default.to.address")
+	@Value("${default.to.address}")
 	private String defaultToAddress;
 	
 	protected SimpleMailMessage prepareSimpleMailMessageFromFeedbackPojo(FeedbackPojo feedback) {
