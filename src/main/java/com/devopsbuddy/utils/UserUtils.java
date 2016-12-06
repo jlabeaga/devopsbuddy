@@ -1,4 +1,4 @@
-package com.devopsbuddy.util;
+package com.devopsbuddy.utils;
 
 import com.devopsbuddy.backend.persistence.domain.backend.User;
 
