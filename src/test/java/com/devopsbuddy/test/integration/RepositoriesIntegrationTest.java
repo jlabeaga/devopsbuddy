@@ -7,6 +7,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -26,6 +28,9 @@ import com.devopsbuddy.enums.RolesEnum;
 @SpringApplicationConfiguration(classes = DevopsbuddyApplication.class)
 public class RepositoriesIntegrationTest {
 
+	
+	private static final Logger LOG = LoggerFactory.getLogger(RepositoriesIntegrationTest.class);
+
     @Autowired
     protected PlanRepository planRepository;
 
@@ -38,6 +43,7 @@ public class RepositoriesIntegrationTest {
     
     @Before
     public void init() {
+    	LOG.debug("Initializing at Before");
         Assert.assertNotNull(planRepository);
         Assert.assertNotNull(roleRepository);
         Assert.assertNotNull(userRepository);
@@ -45,25 +51,32 @@ public class RepositoriesIntegrationTest {
 
     @Test
     public void testCreateNewPlan() throws Exception {
+    	String methodName = "testCreateNewPlan";
+    	LOG.debug("Entering " + methodName);
         Plan basicPlan = createPlan(PlansEnum.BASIC);
         planRepository.save(basicPlan);
         Plan retrievedPlan = planRepository.findOne(PlansEnum.BASIC.getId());
         Assert.assertNotNull(retrievedPlan);
+    	LOG.debug("Exiting " + methodName);
     }
 
     @Test
     public void testCreateNewRole() throws Exception {
 
+    	String methodName = "testCreateNewRole";
+    	LOG.debug("Entering " + methodName);
         Role userRole  = createRole(RolesEnum.BASIC);
         roleRepository.save(userRole);
-
         Role retrievedRole = roleRepository.findOne(RolesEnum.BASIC.getId());
         Assert.assertNotNull(retrievedRole);
+    	LOG.debug("Exiting " + methodName);
     }
 
     @Test
     public void testCreateNewUser() throws Exception {
 
+    	String methodName = "testCreateNewUser";
+    	LOG.debug("Entering " + methodName);
         Plan basicPlan = createPlan(PlansEnum.BASIC);
         planRepository.save(basicPlan);
 
@@ -93,6 +106,7 @@ public class RepositoriesIntegrationTest {
             Assert.assertNotNull(ur.getRole());
             Assert.assertNotNull(ur.getRole().getId());
         }
+    	LOG.debug("Exiting " + methodName);
 
     }
     
