@@ -5,6 +5,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,12 +33,18 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
     /** The application logger */
     private static final Logger LOG = LoggerFactory.getLogger(UserService.class);
 
     @Transactional
     public User createUser(User user, PlansEnum plansEnum, Set<UserRole> userRoles) {
 
+    	String encryptedPassword = passwordEncoder.encode(user.getPassword());
+    	user.setPassword(encryptedPassword);
+    	
         Plan plan = new Plan(plansEnum);
         // It makes sure the plans exist in the database
         if (!planRepository.exists(plansEnum.getId())) {
