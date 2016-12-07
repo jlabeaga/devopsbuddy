@@ -5,7 +5,9 @@ import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,8 @@ public class RepositoriesIntegrationTest {
     @Autowired
     protected UserRepository userRepository;
 
+    @Rule
+    public TestName testName = new TestName();
     
     @Before
     public void init() {
@@ -80,7 +84,10 @@ public class RepositoriesIntegrationTest {
         Plan basicPlan = createPlan(PlansEnum.BASIC);
         planRepository.save(basicPlan);
 
-        User basicUser = createBasicUser();
+        String username = testName.getMethodName();
+        String email = testName.getMethodName() + "@devopsbuddy.com";
+        
+        User basicUser = createBasicUser(username, email);
         basicUser.setPlan(basicPlan);
 
         Role basicRole = createRole(RolesEnum.BASIC);
