@@ -1,16 +1,21 @@
 package com.devopsbuddy.web.controllers;
 
-import java.io.IOException;
-import java.time.Clock;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
-
+import com.devopsbuddy.backend.persistence.domain.backend.Plan;
+import com.devopsbuddy.backend.persistence.domain.backend.Role;
+import com.devopsbuddy.backend.persistence.domain.backend.User;
+import com.devopsbuddy.backend.persistence.domain.backend.UserRole;
+import com.devopsbuddy.backend.service.PlanService;
+import com.devopsbuddy.backend.service.S3Service;
+import com.devopsbuddy.backend.service.StripeService;
+import com.devopsbuddy.backend.service.UserService;
+import com.devopsbuddy.enums.PlansEnum;
+import com.devopsbuddy.enums.RolesEnum;
+import com.devopsbuddy.exceptions.S3Exception;
+import com.devopsbuddy.exceptions.StripeException;
+import com.devopsbuddy.utils.StripeUtils;
+import com.devopsbuddy.utils.UserUtils;
+import com.devopsbuddy.web.domain.frontend.BasicAccountPayload;
+import com.devopsbuddy.web.domain.frontend.ProAccountPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,27 +25,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.devopsbuddy.backend.persistence.domain.backend.Plan;
-import com.devopsbuddy.backend.persistence.domain.backend.Role;
-import com.devopsbuddy.backend.persistence.domain.backend.User;
-import com.devopsbuddy.backend.persistence.domain.backend.UserRole;
-import com.devopsbuddy.backend.service.PlanService;
-import com.devopsbuddy.backend.service.S3Service;
-import com.devopsbuddy.backend.service.UserService;
-import com.devopsbuddy.enums.PlansEnum;
-import com.devopsbuddy.enums.RolesEnum;
-import com.devopsbuddy.exceptions.S3Exception;
-import com.devopsbuddy.utils.UserUtils;
-import com.devopsbuddy.web.domain.frontend.BasicAccountPayload;
-import com.devopsbuddy.web.domain.frontend.ProAccountPayload;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import java.io.IOException;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.*;
 
 /**
  * Created by tedonema on 26/04/2016.
@@ -56,6 +50,9 @@ public class    SignupController {
 
     @Autowired
     private S3Service s3Service;
+
+    @Autowired
+    private StripeService stripeService;
 
     /** The application logger */
     private static final Logger LOG = LoggerFactory.getLogger(SignupController.class);
@@ -176,6 +173,20 @@ public class    SignupController {
 
             }
 
+            // If the user has selected the pro account, creates the Stripe customer to store the stripe customer id in
+            // the db
+            Map<String, Object> stripeTokenParams = StripeUtils.extractTokenParamsFromSignupPayload(payload);
+
+            Map<String, Object> customerParams = new HashMap<String, Object>();
+            customerParams.put("description", "DevOps Buddy customer. Username: " + payload.getUsername());
+            customerParams.put("email", payload.getEmail());
+            customerParams.put("plan", selectedPlan.getId());
+            LOG.info("Subscribing the customer to plan {}", selectedPlan.getName());
+            String stripeCustomerId = stripeService.createCustomer(stripeTokenParams, customerParams);
+            LOG.info("Username: {} has been subscribed to Stripe", payload.getUsername());
+
+            user.setStripeCustomerId(stripeCustomerId);
+
             registeredUser = userService.createUser(user, PlansEnum.PRO, roles);
             LOG.debug(payload.toString());
         }
@@ -193,7 +204,7 @@ public class    SignupController {
         return SUBSCRIPTION_VIEW_NAME;
     }
 
-    @ExceptionHandler({S3Exception.class})
+    @ExceptionHandler({StripeException.class, S3Exception.class})
     public ModelAndView signupException(HttpServletRequest request, Exception exception) {
 
         LOG.error("Request {} raised exception {}", request.getRequestURL(), exception);
