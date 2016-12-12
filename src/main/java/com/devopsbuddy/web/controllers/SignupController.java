@@ -6,12 +6,10 @@ import com.devopsbuddy.backend.persistence.domain.backend.User;
 import com.devopsbuddy.backend.persistence.domain.backend.UserRole;
 import com.devopsbuddy.backend.service.PlanService;
 import com.devopsbuddy.backend.service.S3Service;
-import com.devopsbuddy.backend.service.StripeService;
 import com.devopsbuddy.backend.service.UserService;
 import com.devopsbuddy.enums.PlansEnum;
 import com.devopsbuddy.enums.RolesEnum;
 import com.devopsbuddy.exceptions.S3Exception;
-import com.devopsbuddy.exceptions.StripeException;
 import com.devopsbuddy.utils.StripeUtils;
 import com.devopsbuddy.utils.UserUtils;
 import com.devopsbuddy.web.domain.frontend.BasicAccountPayload;
@@ -50,9 +48,6 @@ public class    SignupController {
 
     @Autowired
     private S3Service s3Service;
-
-    @Autowired
-    private StripeService stripeService;
 
     /** The application logger */
     private static final Logger LOG = LoggerFactory.getLogger(SignupController.class);
@@ -173,20 +168,6 @@ public class    SignupController {
 
             }
 
-            // If the user has selected the pro account, creates the Stripe customer to store the stripe customer id in
-            // the db
-            Map<String, Object> stripeTokenParams = StripeUtils.extractTokenParamsFromSignupPayload(payload);
-
-            Map<String, Object> customerParams = new HashMap<String, Object>();
-            customerParams.put("description", "DevOps Buddy customer. Username: " + payload.getUsername());
-            customerParams.put("email", payload.getEmail());
-            customerParams.put("plan", selectedPlan.getId());
-            LOG.info("Subscribing the customer to plan {}", selectedPlan.getName());
-            String stripeCustomerId = stripeService.createCustomer(stripeTokenParams, customerParams);
-            LOG.info("Username: {} has been subscribed to Stripe", payload.getUsername());
-
-            user.setStripeCustomerId(stripeCustomerId);
-
             registeredUser = userService.createUser(user, PlansEnum.PRO, roles);
             LOG.debug(payload.toString());
         }
@@ -204,7 +185,7 @@ public class    SignupController {
         return SUBSCRIPTION_VIEW_NAME;
     }
 
-    @ExceptionHandler({StripeException.class, S3Exception.class})
+    @ExceptionHandler({S3Exception.class})
     public ModelAndView signupException(HttpServletRequest request, Exception exception) {
 
         LOG.error("Request {} raised exception {}", request.getRequestURL(), exception);
